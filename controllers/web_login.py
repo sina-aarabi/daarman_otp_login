@@ -106,12 +106,15 @@ class DaarmanLogin(Home):
                     authorize_data['providerParameters']['body']['device_uid'] = "12313213"
                     result = authorize.call(data=authorize_data)
                 else:
-                    return {'status': 'error', 'message': _("OTP verification failed, please try again")}
+                    values = {'error': _("Failed to verify OTP, please try again")}
+                    return request.render('web.login', values)
             else:
-                return {'status': 'error', 'message': _("Failed to get handshake service, please try again")}
+                values = {'error': _("Failed to get handshake service, please try again")}
+                return request.render('web.login', values)
         except Exception as e:
             _logger.error(f"Error getting handshake service: {e}")
-            return {'status': 'error', 'message': _("Failed to get handshake service, please try again")}
+            values = {'error': _("Failed to get handshake service, please try again")}
+            return request.render('web.login', values)
         # Store OTP in session with timestamp
         request.session['otp_data'] = {
             'mobile': mobile,
@@ -139,7 +142,8 @@ class DaarmanLogin(Home):
             if result and not result.get('hasError'):
                 parsed_result = json.loads(result.get('result', '{}')) if isinstance(result.get('result'), str) else result.get('result', {})
                 if parsed_result.get('hasError'):
-                    raise UserError(parsed_result.get('message', _("OTP verification failed, please try again")))
+                    values = {'error': _("OTP verification failed, please try again")}
+                    return request.render('web.login', values)
                     
                 #Search res_users by mobile number
                 user = request.env['res.users'].sudo().search([('mobile', '=', mobile)], limit=1)
