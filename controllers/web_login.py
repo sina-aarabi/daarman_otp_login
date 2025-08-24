@@ -106,14 +106,14 @@ class DaarmanLogin(Home):
                     authorize_data['providerParameters']['body']['device_uid'] = "12313213"
                     result = authorize.call(data=authorize_data)
                 else:
-                    values = {'error': _("Failed to verify OTP, please try again")}
+                    values = {'message':'','error': _("Failed to verify OTP, please try again")}
                     return request.render('web.login', values)
             else:
-                values = {'error': _("Failed to get handshake service, please try again")}
+                values = {'message':'','error': _("Failed to get handshake service, please try again")}
                 return request.render('web.login', values)
         except Exception as e:
             _logger.error(f"Error getting handshake service: {e}")
-            values = {'error': _("Failed to get handshake service, please try again")}
+            values = {'message':'','error': _("Failed to get handshake service, please try again")}
             return request.render('web.login', values)
         # Store OTP in session with timestamp
         request.session['otp_data'] = {
