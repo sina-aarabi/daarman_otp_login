@@ -1,0 +1,208 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <template id="daarman_login" inherit_id="web.login">
+        <xpath expr="//form" position="replace">
+            <form t-attf-class="oe_login_form #{'' if login else 'd-none'}" role="form" t-attf-action="/web/login" method="post">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                <!-- Database selector -->
+                <div class="mb-3" t-if="databases and len(databases) &gt; 1">
+                    <label for="db" class="col-form-label">Database</label>
+                    <div class="input-group">
+                        <input type="text" name="db" t-att-value="request.db" id="db" class="form-control" required="required" readonly="readonly"/>
+                        <a role="button" href="/web/database/selector" class="btn btn-secondary">Select <i class="fa fa-database" role="img" aria-label="Database" title="Database"></i></a>
+                    </div>
+                </div>
+
+                <!-- Login Type Selector -->
+                <div class="mb-3">
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="login_type" id="otp_login" value="otp" t-att-checked="request.params.get('login_type', 'otp') == 'otp'"/>
+                        <label class="btn btn-outline-primary" for="otp_login">Login with OTP</label>
+                        
+                        <input type="radio" class="btn-check" name="login_type" id="pwd_login" value="password" t-att-checked="request.params.get('login_type') == 'password'"/>
+                        <label class="btn btn-outline-primary" for="pwd_login">Login with Password</label>
+                    </div>
+                </div>
+
+                <!-- OTP Login Fields -->
+                <div id="otp_section" t-att-style="'display: none;' if request.params.get('login_type') == 'password' else ''">
+                    <div class="mb-3">
+                        <label for="mobile" class="form-label">Mobile Number</label>
+                        <input type="tel" placeholder="Enter mobile number" name="mobile" id="mobile" 
+                               class="form-control" autocomplete="tel" t-att-value="request.params.get('mobile')"/>
+                    </div>
+                    <div class="mb-3" id="otp_input_section" t-att-style="'display: none;' if not request.params.get('otp_sent') else ''">
+                        <label for="otp" class="form-label">Enter OTP</label>
+                        <div class="d-flex gap-2">
+                            <input type="text" placeholder="Enter OTP" name="otp" id="otp" 
+                                   class="form-control" maxlength="6"/>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="submitted_action" t-att-value="request.params.get('submitted_action')"/>
+                    
+                    <!-- Send OTP Button -->
+                    <button type="button" class="btn btn-primary w-100" id="sendOtpBtn"
+                            t-att-style="'display: ' + ('none' if request.params.get('otp_sent') else 'block')"
+                            onclick="handleSendOtp(this);">
+                        <span class="btn-text">Send OTP</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                    
+                    <!-- Timer and Resend Section -->
+                    <div t-att-style="'display: ' + ('block' if request.params.get('otp_sent') else 'none')"
+                         class="d-flex align-items-center justify-content-between">
+                        <span id="timerDisplay" class="text-muted"></span>
+                        <button type="button" class="btn btn-link p-0" id="resendOtpBtn" style="display: none;"
+                                onclick="this.form.submitted_action.value='send_otp'; startTimer(); this.form.submit();">
+                            Resend OTP
+                        </button>
+                    </div>
+                    
+                    <!-- Verify OTP Button -->
+                    <button type="button" class="btn btn-success w-100" id="verifyOtpBtn"
+                            t-att-style="'display: ' + ('block' if request.params.get('otp_sent') else 'none')"
+                            onclick="handleVerifyOtp(this);">
+                        <span class="btn-text">Verify OTP</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                </div>
+
+                <!-- Password Login Fields -->
+                <div id="password_section" t-att-style="'display: none;' if request.params.get('login_type', 'otp') != 'password' else ''">
+                    <div class="mb-3">
+                        <label for="login" class="form-label">Email</label>
+                        <input type="text" placeholder="Email" name="login" t-att-value="login" id="login" class="form-control" autocapitalize="off" autocomplete="username"/>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" placeholder="Password" name="password" id="password" class="form-control" autocomplete="current-password" maxlength="4096"/>
+                    </div>
+                    <button type="submit" name="action" value="login" formmethod="post" class="btn btn-primary w-100">
+                        Log in
+                    </button>
+                </div>
+                <br/>
+
+                <p class="alert alert-danger" t-if="error" role="alert">
+                    <t t-esc="error"/>
+                </p>
+                <p class="alert alert-success" t-if="message" role="status">
+                    <t t-esc="message"/>
+                </p>
+
+                <input type="hidden" name="redirect" t-att-value="redirect"/>
+            </form>
+
+            <script type="text/javascript"><![CDATA[
+                function startTimer() {
+                    const timerDisplay = document.getElementById('timerDisplay');
+                    const resendOtpBtn = document.getElementById('resendOtpBtn');
+                    let timeLeft = 300; // 5 minutes in seconds
+
+                    resendOtpBtn.style.display = 'none';
+                    
+                    const timer = setInterval(function() {
+                        const minutes = Math.floor(timeLeft / 60);
+                        const seconds = timeLeft % 60;
+                        
+                        timerDisplay.textContent = 'Resend OTP in ' + minutes + ':' + seconds.toString().padStart(2, '0');
+                        
+                        if (timeLeft <= 0) {
+                            clearInterval(timer);
+                            timerDisplay.textContent = '';
+                            resendOtpBtn.style.display = 'block';
+                        }
+                        timeLeft -= 1;
+                    }, 1000);
+                }
+
+                function handleSendOtp(button) {
+                    // Get form and mobile input
+                    const form = button.form;
+                    const mobileInput = document.getElementById('mobile');
+                    
+                    // Validate mobile number
+                    if (!mobileInput.value.trim()) {
+                        alert('Please enter a mobile number');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    setLoadingState(button, true);
+                    
+                    // Make mobile input readonly instead of disabled to preserve value in form submission
+                    mobileInput.readOnly = true;
+                    
+                    // Set form action and submit
+                    form.submitted_action.value = 'send_otp';
+                    form.submit();
+                }
+
+                function handleVerifyOtp(button) {
+                    // Get form and OTP input
+                    const form = button.form;
+                    const otpInput = document.getElementById('otp');
+                    const mobileInput = document.getElementById('mobile');
+                    
+                    // Validate OTP
+                    if (!otpInput.value.trim()) {
+                        alert('Please enter the OTP');
+                        return;
+                    }
+                    
+                    // Show loading state
+                    setLoadingState(button, true);
+                    
+                    // Make inputs readonly to preserve values in form submission
+                    otpInput.readOnly = true;
+                    mobileInput.readOnly = true;
+                    
+                    // Set form action and submit
+                    form.submitted_action.value = 'verify_otp';
+                    form.submit();
+                }
+
+                function setLoadingState(button, isLoading) {
+                    const btnText = button.querySelector('.btn-text');
+                    const spinner = button.querySelector('.spinner-border');
+                    
+                    if (isLoading) {
+                        btnText.classList.add('d-none');
+                        spinner.classList.remove('d-none');
+                        button.disabled = true;
+                    } else {
+                        btnText.classList.remove('d-none');
+                        spinner.classList.add('d-none');
+                        button.disabled = false;
+                    }
+                }
+
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Only keep the toggle functionality in JavaScript
+                    const otpSection = document.getElementById('otp_section');
+                    const passwordSection = document.getElementById('password_section');
+                    const otpLogin = document.getElementById('otp_login');
+                    const pwdLogin = document.getElementById('pwd_login');
+
+                    otpLogin.addEventListener('change', function() {
+                        otpSection.style.display = 'block';
+                        passwordSection.style.display = 'none';
+                    });
+
+                    pwdLogin.addEventListener('change', function() {
+                        otpSection.style.display = 'none';
+                        passwordSection.style.display = 'block';
+                    });
+                });
+
+                // Start timer when OTP is sent
+                if (document.getElementById('timerDisplay') && "<t t-esc=\"request.params.get('otp_sent')\"/>" === "True") {
+                    startTimer();
+                }
+            ]]></script>
+        </xpath>
+    </template>
+
+</odoo>
