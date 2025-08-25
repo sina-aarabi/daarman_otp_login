@@ -91,11 +91,59 @@
                 <p class="alert alert-success" t-if="message" role="status">
                     <t t-esc="message"/>
                 </p>
+                
+                <!-- Dynamic notification area -->
+                <div id="notification-area"></div>
+
+                <!-- Hidden translation elements -->
+                <div style="display: none;">
+                    <span id="trans-please-enter-mobile">لطفا شماره موبایل را وارد کنید</span>
+                    <span id="trans-please-enter-valid-mobile">لطفا شماره موبایل معتبر وارد کنید</span>
+                    <span id="trans-please-enter-otp">لطفا کد تایید را وارد کنید</span>
+                    <span id="trans-please-enter-valid-otp">لطفا کد تایید ۶ رقمی معتبر وارد کنید</span>
+                    <span id="trans-close">بستن</span>
+                    <span id="trans-resend-otp-in">ارسال مجدد کد تایید در</span>
+                </div>
 
                 <input type="hidden" name="redirect" t-att-value="redirect"/>
             </form>
 
             <script type="text/javascript"><![CDATA[
+                // Get translated strings from hidden elements
+                function getTranslation(key) {
+                    const element = document.getElementById('trans-' + key);
+                    return element ? element.textContent : key;
+                }
+
+                // Custom notification function to replace alert
+                function showNotification(message, type = 'danger', duration = 5000) {
+                    const notificationArea = document.getElementById('notification-area');
+                    
+                    // Create notification element
+                    const notification = document.createElement('div');
+                    notification.className = `alert alert-${type} alert-dismissible fade show mt-2`;
+                    notification.setAttribute('role', type === 'danger' ? 'alert' : 'status');
+                    notification.innerHTML = `
+                        ${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="${getTranslation('close')}"></button>
+                    `;
+                    
+                    // Add to notification area
+                    notificationArea.appendChild(notification);
+                    
+                    // Auto-remove after duration
+                    setTimeout(() => {
+                        if (notification.parentNode) {
+                            notification.classList.remove('show');
+                            setTimeout(() => {
+                                if (notification.parentNode) {
+                                    notification.parentNode.removeChild(notification);
+                                }
+                            }, 150);
+                        }
+                    }, duration);
+                }
+
                 function startTimer() {
                     const timerDisplay = document.getElementById('timerDisplay');
                     const resendOtpBtn = document.getElementById('resendOtpBtn');
@@ -107,7 +155,7 @@
                         const minutes = Math.floor(timeLeft / 60);
                         const seconds = timeLeft % 60;
                         
-                        timerDisplay.textContent = 'Resend OTP in ' + minutes + ':' + seconds.toString().padStart(2, '0');
+                        timerDisplay.textContent = getTranslation('resend-otp-in') + ' ' + minutes + ':' + seconds.toString().padStart(2, '0');
                         
                         if (timeLeft <= 0) {
                             clearInterval(timer);
@@ -125,7 +173,16 @@
                     
                     // Validate mobile number
                     if (!mobileInput.value.trim()) {
-                        alert('Please enter a mobile number');
+                        showNotification(getTranslation('please-enter-mobile'), 'warning');
+                        mobileInput.focus();
+                        return;
+                    }
+                    
+                    // Basic mobile number validation
+                    const mobilePattern = /^[0-9]{10,15}$/;
+                    if (!mobilePattern.test(mobileInput.value.trim())) {
+                        showNotification(getTranslation('please-enter-valid-mobile'), 'warning');
+                        mobileInput.focus();
                         return;
                     }
                     
@@ -148,7 +205,16 @@
                     
                     // Validate OTP
                     if (!otpInput.value.trim()) {
-                        alert('Please enter the OTP');
+                        showNotification(getTranslation('please-enter-otp'), 'warning');
+                        otpInput.focus();
+                        return;
+                    }
+                    
+                    // Basic OTP validation (should be 6 digits)
+                    const otpPattern = /^[0-9]{6}$/;
+                    if (!otpPattern.test(otpInput.value.trim())) {
+                        showNotification(getTranslation('please-enter-valid-otp'), 'warning');
+                        otpInput.focus();
                         return;
                     }
                     
@@ -189,12 +255,40 @@
                     otpLogin.addEventListener('change', function() {
                         otpSection.style.display = 'block';
                         passwordSection.style.display = 'none';
+                        // Clear any existing notifications when switching
+                        document.getElementById('notification-area').innerHTML = '';
                     });
 
                     pwdLogin.addEventListener('change', function() {
                         otpSection.style.display = 'none';
                         passwordSection.style.display = 'block';
+                        // Clear any existing notifications when switching
+                        document.getElementById('notification-area').innerHTML = '';
                     });
+
+                    // Add input event listeners for better UX
+                    const mobileInput = document.getElementById('mobile');
+                    const otpInput = document.getElementById('otp');
+
+                    if (mobileInput) {
+                        mobileInput.addEventListener('input', function() {
+                            // Remove readonly when user starts typing again
+                            if (this.readOnly) {
+                                this.readOnly = false;
+                            }
+                        });
+                    }
+
+                    if (otpInput) {
+                        otpInput.addEventListener('input', function() {
+                            // Remove readonly when user starts typing again
+                            if (this.readOnly) {
+                                this.readOnly = false;
+                            }
+                            // Auto-format OTP input (only numbers)
+                            this.value = this.value.replace(/[^0-9]/g, '');
+                        });
+                    }
                 });
 
                 // Start timer when OTP is sent
