@@ -78,10 +78,6 @@ class DaarmanLogin(Home):
 
     def _send_otp(self, mobile):
         """Generate and send OTP"""
-        # Generate a 6-digit OTP
-        otp = ''.join([str(random.randint(0, 9)) for _ in range(6)])
-        
-
         # TODO: Implement actual OTP sending logic here
         try:
             # Get the create request service
@@ -120,7 +116,7 @@ class DaarmanLogin(Home):
             'mobile': mobile,
             'keyId': keyId,
         }
-        _logger.info(f"OTP generated for {mobile}: {otp}")
+        _logger.info(f"OTP generated for {mobile}")
 
         return {'status': 'success', 'message': _("OTP sent successfully")}
 
@@ -168,6 +164,13 @@ class DaarmanLogin(Home):
                                     profile_parsed_result = json.loads(profile_result.get('result', '{}')) if isinstance(profile_result.get('result'), str) else profile_result.get('result', {})
                                     if isinstance(profile_parsed_result.get('result'), dict):
                                         user_data = profile_parsed_result['result']
+                                        #create partner
+                                        partner = request.env['res.partner'].sudo().create({
+                                            'name': user_data.get('firstName', '') + ' ' + user_data.get('lastName', ''),
+                                            'email': user_data.get('email', ''),
+                                            'mobile': mobile,
+                                            'is_company': False,
+                                        })
                                         #create user
                                         request.env['res.users'].sudo().signup({
                                             'name': user_data.get('firstName', '') + ' ' + user_data.get('lastName', ''),
@@ -178,6 +181,7 @@ class DaarmanLogin(Home):
                                             # generate random password
                                             'password': ''.join([random.choice('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789') for _ in range(12)]),
                                             'pod_user_id': int(user_data.get('userId', 0)) if str(user_data.get('userId', '')).isdigit() else False,
+                                            'partner_id': partner.id,
                                         })
                                         request.env.cr.commit()
                                         user = request.env['res.users'].sudo().search([('mobile', '=', mobile)], limit=1)
