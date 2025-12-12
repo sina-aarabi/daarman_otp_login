@@ -27,11 +27,28 @@
 
                 <!-- OTP Login Fields -->
                 <div id="otp_section" t-att-style="'display: none;' if request.params.get('login_type') == 'password' else ''">
-                    <div class="mb-3">
+                    <!-- Step 1: Mobile Number Input -->
+                    <div class="mb-3" id="mobile_section">
                         <label for="mobile" class="form-label">Mobile Number</label>
                         <input type="tel" placeholder="Enter mobile number" name="mobile" id="mobile" 
                                class="form-control" autocomplete="tel" t-att-value="request.params.get('mobile')"/>
                     </div>
+                    
+                    <!-- Step 2: User Details Form (only for new users) -->
+                    <div t-if="request.params.get('show_user_details_form') == 'True'" id="user_details_section" class="mt-3">
+                        <div class="mb-3">
+                            <label for="national_code" class="form-label">National Code</label>
+                            <input type="text" placeholder="10 digit national code" name="national_code" id="national_code"
+                                    class="form-control" maxlength="10" pattern="[0-9]{10}" t-att-value="request.params.get('national_code')"/>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="birthdate" class="form-label">Birthdate</label>
+                            <input type="text" id="birthdate" name="birthdate" class="form-control" placeholder="YYYY-MM-DD" t-att-value="request.params.get('birthdate')"/>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: OTP Input (only after authorize is called) -->
                     <div class="mb-3" id="otp_input_section" t-att-style="'display: none;' if not request.params.get('otp_sent') else ''">
                         <label for="otp" class="form-label">Enter OTP</label>
                         <div class="d-flex gap-2">
@@ -42,10 +59,18 @@
                     
                     <input type="hidden" name="submitted_action" t-att-value="request.params.get('submitted_action')"/>
                     
-                    <!-- Send OTP Button -->
-                    <button type="button" class="btn btn-primary w-100" id="sendOtpBtn"
-                            t-att-style="'display: ' + ('none' if request.params.get('otp_sent') else 'block')"
-                            onclick="handleSendOtp(this);">
+                    <!-- Step 1 Button: Send Mobile (for existing users - shows OTP field directly) -->
+                    <button type="button" class="btn btn-primary w-100" id="sendMobileBtn"
+                            t-att-style="'display: ' + ('none' if request.params.get('show_user_details_form') or request.params.get('otp_sent') else 'block')"
+                            onclick="handleSendMobile(this);">
+                        <span class="btn-text">Next</span>
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                    </button>
+                    
+                    <!-- Step 2 Button: Authorize OTP (only for new users after entering details) -->
+                    <button type="button" class="btn btn-primary w-100" id="authorizeOtpBtn"
+                            t-att-style="'display: ' + ('block' if request.params.get('show_user_details_form') and not request.params.get('otp_sent') else 'none')"
+                            onclick="handleAuthorizeOtp(this);">
                         <span class="btn-text">Send OTP</span>
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                     </button>
@@ -55,12 +80,12 @@
                          class="d-flex align-items-center justify-content-between">
                         <span id="timerDisplay" class="text-muted"></span>
                         <button type="button" class="btn btn-link p-0" id="resendOtpBtn" style="display: none;"
-                                onclick="this.form.submitted_action.value='send_otp'; startTimer(); this.form.submit();">
+                                onclick="this.form.submitted_action.value='authorize_otp'; startTimer(); this.form.submit();">
                             Resend OTP
                         </button>
                     </div>
                     
-                    <!-- Verify OTP Button -->
+                    <!-- Step 3 Button: Verify OTP -->
                     <button type="button" class="btn btn-success w-100" id="verifyOtpBtn"
                             t-att-style="'display: ' + ('block' if request.params.get('otp_sent') else 'none')"
                             onclick="handleVerifyOtp(this);">
@@ -103,6 +128,8 @@
                     <span id="trans-please-enter-valid-otp">لطفا کد تایید ۶ رقمی معتبر وارد کنید</span>
                     <span id="trans-close">بستن</span>
                     <span id="trans-resend-otp-in">ارسال مجدد کد تایید در</span>
+                    <span id="trans-please-enter-valid-national-code">لطفا کد ملی ۱۰ رقمی معتبر وارد کنید</span>
+                    <span id="trans-please-enter-birthdate">لطفا تاریخ تولد را وارد کنید</span>
                 </div>
 
                 <input type="hidden" name="redirect" t-att-value="redirect"/>
@@ -166,10 +193,16 @@
                     }, 1000);
                 }
 
-                function handleSendOtp(button) {
-                    // Get form and mobile input
+                function handleSendMobile(button) {
+                    if (!button) return;
+                    
                     const form = button.form;
                     const mobileInput = document.getElementById('mobile');
+                    
+                    if (!mobileInput) {
+                        console.error('Mobile input not found');
+                        return;
+                    }
                     
                     // Validate mobile number
                     if (!mobileInput.value.trim()) {
@@ -186,22 +219,66 @@
                         return;
                     }
                     
-                    // Show loading state
                     setLoadingState(button, true);
-                    
-                    // Make mobile input readonly instead of disabled to preserve value in form submission
                     mobileInput.readOnly = true;
                     
-                    // Set form action and submit
-                    form.submitted_action.value = 'send_otp';
-                    form.submit();
+                    if (form && form.submitted_action) {
+                        form.submitted_action.value = 'send_mobile';
+                        form.submit();
+                    }
+                }
+
+                function handleAuthorizeOtp(button) {
+                    if (!button) return;
+                    
+                    const form = button.form;
+                    const mobileInput = document.getElementById('mobile');
+                    const nationalInput = document.getElementById('national_code');
+                    const birthdateInput = document.getElementById('birthdate');
+                    
+                    if (!mobileInput || !nationalInput || !birthdateInput) {
+                        console.error('Required inputs not found');
+                        return;
+                    }
+                    
+                    // Validate national code
+                    const nationalVal = nationalInput.value.trim();
+                    const nationalPattern = /^[0-9]{10}$/;
+                    if (!nationalPattern.test(nationalVal)) {
+                        showNotification(getTranslation('please-enter-valid-national-code') || 'National code must be 10 digits', 'warning');
+                        nationalInput.focus();
+                        return;
+                    }
+                    
+                    // Validate birthdate
+                    if (!birthdateInput.value) {
+                        showNotification(getTranslation('please-enter-birthdate') || 'Birthdate is required', 'warning');
+                        birthdateInput.focus();
+                        return;
+                    }
+                    
+                    setLoadingState(button, true);
+                    mobileInput.readOnly = true;
+                    nationalInput.readOnly = true;
+                    birthdateInput.readOnly = true;
+                    
+                    if (form && form.submitted_action) {
+                        form.submitted_action.value = 'authorize_otp';
+                        form.submit();
+                    }
                 }
 
                 function handleVerifyOtp(button) {
-                    // Get form and OTP input
+                    if (!button) return;
+                    
                     const form = button.form;
                     const otpInput = document.getElementById('otp');
                     const mobileInput = document.getElementById('mobile');
+                    
+                    if (!otpInput || !mobileInput) {
+                        console.error('OTP or mobile input not found');
+                        return;
+                    }
                     
                     // Validate OTP
                     if (!otpInput.value.trim()) {
@@ -218,30 +295,32 @@
                         return;
                     }
                     
-                    // Show loading state
                     setLoadingState(button, true);
-                    
-                    // Make inputs readonly to preserve values in form submission
                     otpInput.readOnly = true;
                     mobileInput.readOnly = true;
                     
-                    // Set form action and submit
-                    form.submitted_action.value = 'verify_otp';
-                    form.submit();
+                    if (form && form.submitted_action) {
+                        form.submitted_action.value = 'verify_otp';
+                        form.submit();
+                    }
                 }
 
                 function setLoadingState(button, isLoading) {
+                    if (!button) return;
+                    
                     const btnText = button.querySelector('.btn-text');
                     const spinner = button.querySelector('.spinner-border');
                     
-                    if (isLoading) {
-                        btnText.classList.add('d-none');
-                        spinner.classList.remove('d-none');
-                        button.disabled = true;
-                    } else {
-                        btnText.classList.remove('d-none');
-                        spinner.classList.add('d-none');
-                        button.disabled = false;
+                    if (btnText && spinner) {
+                        if (isLoading) {
+                            btnText.classList.add('d-none');
+                            spinner.classList.remove('d-none');
+                            button.disabled = true;
+                        } else {
+                            btnText.classList.remove('d-none');
+                            spinner.classList.add('d-none');
+                            button.disabled = false;
+                        }
                     }
                 }
 
@@ -289,6 +368,8 @@
                             this.value = this.value.replace(/[^0-9]/g, '');
                         });
                     }
+
+                    // The birthdate input uses Odoo's native datepicker via class `o_datepicker` (no manual init needed)
                 });
 
                 // Start timer when OTP is sent

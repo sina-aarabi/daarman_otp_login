@@ -23,7 +23,6 @@ Long description of module's purpose
     # always loaded
     'data': [
         'views/web_login.xml'
-        
     ],
     # only loaded in demonstration mode
     'demo': [
