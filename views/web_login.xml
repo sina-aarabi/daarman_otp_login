@@ -44,7 +44,9 @@
 
                         <div class="mb-3">
                             <label for="birthdate" class="form-label">Birthdate</label>
-                            <input type="text" id="birthdate" name="birthdate" class="form-control" placeholder="YYYY-MM-DD" t-att-value="request.params.get('birthdate')"/>
+                            <input type="text" id="birthdate" name="birthdate" class="form-control" 
+                                   t-att-value="request.params.get('birthdate')"
+                                   data-widget="datetime-picker" data-widget-type="date"  autocomplete="off"/>
                         </div>
                     </div>
                     
@@ -229,22 +231,26 @@
                 }
 
                 function handleAuthorizeOtp(button) {
-                    if (!button) return;
+                    if (!button) {
+                        console.error('Button is null');
+                        return;
+                    }
                     
-                    const form = button.form;
+                    const form = button.closest('form');
                     const mobileInput = document.getElementById('mobile');
                     const nationalInput = document.getElementById('national_code');
                     const birthdateInput = document.getElementById('birthdate');
+                    
+                    console.log('handleAuthorizeOtp called', {button, form, mobileInput, nationalInput, birthdateInput});
                     
                     if (!mobileInput || !nationalInput || !birthdateInput) {
                         console.error('Required inputs not found');
                         return;
                     }
                     
-                    // Validate national code
+                    // Validate national code using checkCodeMeli
                     const nationalVal = nationalInput.value.trim();
-                    const nationalPattern = /^[0-9]{10}$/;
-                    if (!nationalPattern.test(nationalVal)) {
+                    if (!checkCodeMeli(nationalVal)) {
                         showNotification(getTranslation('please-enter-valid-national-code') || 'National code must be 10 digits', 'warning');
                         nationalInput.focus();
                         return;
@@ -257,23 +263,33 @@
                         return;
                     }
                     
-                    setLoadingState(button, true);
+                    console.log('Validation passed, setting loading state');
+                    
                     mobileInput.readOnly = true;
                     nationalInput.readOnly = true;
                     birthdateInput.readOnly = true;
                     
                     if (form && form.submitted_action) {
                         form.submitted_action.value = 'authorize_otp';
+                        setLoadingState(button, true);
+                        console.log('Submitting form');
                         form.submit();
+                    } else {
+                        console.error('Form or submitted_action not found', {form});
                     }
                 }
 
                 function handleVerifyOtp(button) {
-                    if (!button) return;
+                    if (!button) {
+                        console.error('Button is null');
+                        return;
+                    }
                     
-                    const form = button.form;
+                    const form = button.closest('form');
                     const otpInput = document.getElementById('otp');
                     const mobileInput = document.getElementById('mobile');
+                    
+                    console.log('handleVerifyOtp called', {button, form, otpInput, mobileInput});
                     
                     if (!otpInput || !mobileInput) {
                         console.error('OTP or mobile input not found');
@@ -295,33 +311,60 @@
                         return;
                     }
                     
-                    setLoadingState(button, true);
+                    console.log('Validation passed, setting loading state');
+                    
                     otpInput.readOnly = true;
                     mobileInput.readOnly = true;
                     
                     if (form && form.submitted_action) {
                         form.submitted_action.value = 'verify_otp';
+                        setLoadingState(button, true);
+                        console.log('Submitting form');
                         form.submit();
+                    } else {
+                        console.error('Form or submitted_action not found', {form});
                     }
                 }
 
                 function setLoadingState(button, isLoading) {
-                    if (!button) return;
-                    
-                    const btnText = button.querySelector('.btn-text');
-                    const spinner = button.querySelector('.spinner-border');
-                    
-                    if (btnText && spinner) {
-                        if (isLoading) {
-                            btnText.classList.add('d-none');
-                            spinner.classList.remove('d-none');
-                            button.disabled = true;
-                        } else {
-                            btnText.classList.remove('d-none');
-                            spinner.classList.add('d-none');
-                            button.disabled = false;
-                        }
+                    if (!button) {
+                        console.error('setLoadingState: button is null');
+                        return;
                     }
+                    
+                    console.log('setLoadingState called', {button, isLoading, innerHTML: button.innerHTML});
+                    
+                    if (isLoading) {
+                        button.disabled = true;
+                        // Simply hide all text and show spinner by clearing innerHTML and using a spinner
+                        const originalHTML = button.innerHTML;
+                        button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+                        button.dataset.originalHTML = originalHTML;
+                        console.log('Loading state set to true - SUCCESS');
+                    } else {
+                        button.disabled = false;
+                        // Restore original HTML
+                        if (button.dataset.originalHTML) {
+                            button.innerHTML = button.dataset.originalHTML;
+                            delete button.dataset.originalHTML;
+                        }
+                        console.log('Loading state set to false - SUCCESS');
+                    }
+                }
+
+                // Iranian national code validation
+                function checkCodeMeli(code) {
+                    if (!code) return false;
+                    var L = code.length;
+                    if (L < 8 || parseInt(code, 10) === 0) return false;
+                    code = ('0000' + code).substr(L + 4 - 10);
+                    if (parseInt(code.substr(3, 6), 10) === 0) return false;
+                    var c = parseInt(code.substr(9, 1), 10);
+                    var s = 0;
+                    for (var i = 0; i < 9; i++)
+                        s += parseInt(code.substr(i, 1), 10) * (10 - i);
+                    s = s % 11;
+                    return (s < 2 && c == s) || (s >= 2 && c == (11 - s));
                 }
 
                 document.addEventListener('DOMContentLoaded', function() {
@@ -368,8 +411,6 @@
                             this.value = this.value.replace(/[^0-9]/g, '');
                         });
                     }
-
-                    // The birthdate input uses Odoo's native datepicker via class `o_datepicker` (no manual init needed)
                 });
 
                 // Start timer when OTP is sent

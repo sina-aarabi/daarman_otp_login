@@ -42,6 +42,22 @@ class DaarmanLogin(Home):
         birthdate = request.params.get('birthdate')
         otp = request.params.get('otp')
         action = values.get('action') or request.params.get('action')
+        
+         #convert birthdate from shamsi to gorgian. now yyyy/mm/dd in shamsi must convert to gorgian %Y-%m-%d
+        if birthdate:
+            from persiantools.jdatetime import JalaliDateTime
+            try:
+                shamsi_date = JalaliDateTime(int(birthdate.split('/')[0]), int(birthdate.split('/')[1]), int(birthdate.split('/')[2]))
+                gregorian_date = shamsi_date.to_gregorian() 
+                birthdate = gregorian_date.strftime('%Y-%m-%d')
+            except Exception as e:
+                _logger.error(f"Error converting birthdate: {e}")
+                values.update({
+                    'error': _("Invalid birthdate format"),
+                    'mobile': mobile,
+                    'login_type': 'otp',
+                })
+                return request.render('web.login', values) 
 
         _logger.info(f"OTP login handler - Action: {action}, Mobile: {mobile}")
 
@@ -58,6 +74,7 @@ class DaarmanLogin(Home):
                 # Existing user - automatically call authorize service with data from database
                 national_code = user.partner_id.national_code if user.partner_id else ''
                 birthdate = str(user.partner_id.birthdate) if user.partner_id and user.partner_id.birthdate else ''
+                
                 
                 result = self._call_authorize_service(mobile, national_code, birthdate)
                 
@@ -128,6 +145,8 @@ class DaarmanLogin(Home):
                 # Existing user - get from database
                 national_code = user.partner_id.national_code if user.partner_id else ''
                 birthdate = str(user.partner_id.birthdate) if user.partner_id and user.partner_id.birthdate else ''
+                
+                    
             
             # Call authorize service with mobile, national_code, and birthdate
             result = self._call_authorize_service(mobile, national_code, birthdate)

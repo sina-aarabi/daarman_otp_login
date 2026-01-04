@@ -6,14 +6,67 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 18.0+e-20250101\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-08-24 13:08+0000\n"
-"PO-Revision-Date: 2025-08-24 13:08+0000\n"
+"POT-Creation-Date: 2026-01-04 16:39+0000\n"
+"PO-Revision-Date: 2026-01-04 16:39+0000\n"
 "Last-Translator: \n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: \n"
 "Plural-Forms: \n"
+
+#. module: daarman_otp_login
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid "10 digit national code"
+msgstr "کد ملی "
+
+#. module: daarman_otp_login
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid ""
+"<span class=\"btn-text\">Next</span>\n"
+"                        <span class=\"spinner-border spinner-border-sm d-none\" role=\"status\" aria-hidden=\"true\"/>"
+msgstr ""
+"<span class=\"btn-text\">ادامه</span>\n"
+"                        <span class=\"spinner-border spinner-border-sm d-none\" role=\"status\" aria-hidden=\"true\"/>"
+
+#. module: daarman_otp_login
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid ""
+"<span class=\"btn-text\">Send OTP</span>\n"
+"                        <span class=\"spinner-border spinner-border-sm d-none\" role=\"status\" aria-hidden=\"true\"/>"
+msgstr "ارسال کد تایید"
+
+#. module: daarman_otp_login
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid ""
+"<span class=\"btn-text\">Verify OTP</span>\n"
+"                        <span class=\"spinner-border spinner-border-sm d-none\" role=\"status\" aria-hidden=\"true\"/>"
+msgstr "تایید کد"
+
+#. module: daarman_otp_login
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid ""
+"<span id=\"trans-please-enter-mobile\">لطفا شماره موبایل را وارد کنید</span>\n"
+"                    <span id=\"trans-please-enter-valid-mobile\">لطفا شماره موبایل معتبر وارد کنید</span>\n"
+"                    <span id=\"trans-please-enter-otp\">لطفا کد تایید را وارد کنید</span>\n"
+"                    <span id=\"trans-please-enter-valid-otp\">لطفا کد تایید ۶ رقمی معتبر وارد کنید</span>\n"
+"                    <span id=\"trans-close\">بستن</span>\n"
+"                    <span id=\"trans-resend-otp-in\">ارسال مجدد کد تایید در</span>\n"
+"                    <span id=\"trans-please-enter-valid-national-code\">لطفا کد ملی ۱۰ رقمی معتبر وارد کنید</span>\n"
+"                    <span id=\"trans-please-enter-birthdate\">لطفا تاریخ تولد را وارد کنید</span>"
+msgstr ""
+
+#. module: daarman_otp_login
+#: model:ir.model.fields,field_description:daarman_otp_login.field_res_partner__birthdate
+#: model:ir.model.fields,field_description:daarman_otp_login.field_res_users__birthdate
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid "Birthdate"
+msgstr "تاریخ تولد"
+
+#. module: daarman_otp_login
+#: model:ir.model,name:daarman_otp_login.model_res_partner
+msgid "Contact"
+msgstr "مخاطب"
 
 #. module: daarman_otp_login
 #: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
@@ -57,6 +110,13 @@ msgid "Mobile Number"
 msgstr "موبایل"
 
 #. module: daarman_otp_login
+#: model:ir.model.fields,field_description:daarman_otp_login.field_res_partner__national_code
+#: model:ir.model.fields,field_description:daarman_otp_login.field_res_users__national_code
+#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
+msgid "National Code"
+msgstr "کد ملی"
+
+#. module: daarman_otp_login
 #: model:ir.model.fields,field_description:daarman_otp_login.field_res_users__pod_user_id
 msgid "POD User ID"
 msgstr "شناسه کاربری POD"
@@ -81,11 +141,6 @@ msgstr ""
 "title=\"Database\"/>"
 
 #. module: daarman_otp_login
-#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
-msgid "Send OTP"
-msgstr "ارسال کد تایید"
-
-#. module: daarman_otp_login
 #: model:ir.model,name:daarman_otp_login.model_res_users
 msgid "User"
 msgstr "کاربر"
@@ -95,10 +150,7 @@ msgstr "کاربر"
 msgid "User ID from the POD system"
 msgstr "شناسه کاربری از سیستم POD"
 
-#. module: daarman_otp_login
-#: model_terms:ir.ui.view,arch_db:daarman_otp_login.daarman_login
-msgid "Verify OTP"
-msgstr "تایید کد"
+
 
 #. module: daarman_otp_login
 #. odoo-python
